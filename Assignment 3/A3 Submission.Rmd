@@ -1,0 +1,811 @@
+---
+title: "A3"
+author: "Aly Abelwahed, Manish Suresh"
+date: "08/03/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(broom)
+```
+
+# Question 1
+
+### Part a
+
+```{r}
+PatientSatisfactionData <- read_table("PatientSatisfaction.txt", 
+                                      col_names = c("Satisfaction", "Age", 
+                                                    "Illness_Severity", "Anxiety_Lvl"))
+```
+
+Histogram of the predictor variables
+
+```{r ,fig.height=3.5}
+ggplot(PatientSatisfactionData, aes(x = Age, y = ..density..)) + 
+  geom_histogram(bins = 7, color = "grey", fill = "lightgreen") + 
+  geom_density(color = "Red", size = 1.5)
+
+ggplot(PatientSatisfactionData, aes(x = Illness_Severity, y = ..density..)) +
+  geom_histogram(bins = 7, color = "grey", fill = "lightgreen") + 
+  geom_density(color = "Red", size = 1.5)
+
+ggplot(PatientSatisfactionData, aes(x = Anxiety_Lvl, y = ..density..)) +
+  geom_histogram(bins = 7, color = "grey", fill = "lightgreen") + 
+  geom_density(color = "Red", size = 1.5)
+
+```
+
+Noteworthy features revealed by these plots:
+
+-   Illness_severity is normally distributed and is slightly skewed to the right
+
+-   Age is normally distributed but is very largely spread out at the middle and it's also bimodal
+
+-   Anxiety_Lvl is almost entirely normal
+
+\newpage
+
+### Part b
+
+```{r, fig.height=8}
+pairs(with(PatientSatisfactionData, cbind(Age, Illness_Severity, Anxiety_Lvl)), pch=20 , cex=1.5 , col="#69b3a2")
+
+pairs(PatientSatisfactionData)
+
+cor(with(PatientSatisfactionData, cbind(Age, Illness_Severity, Anxiety_Lvl)))
+```
+
+From the correlation matrix above, there is no definite cause for concern about multicollinearity as there are no variables that are highly correlated. One thing to be aware of is the correlation between Anxiety_Lvl and Illness_Severity as the correlation between them is 0.6705287 which is close to being considered as highly correlated but not quite there yet as it's not greater than 0.7. But other than that, there are no other causes of concern about multicollinearity.
+
+\newpage
+
+### Part c
+
+```{r}
+# Perform the Regression Fit
+patient.regression <- lm(Satisfaction ~ Age + Illness_Severity + Anxiety_Lvl, PatientSatisfactionData)
+
+# Display info about regression
+patient.regression.coeffcients <- tidy(patient.regression)
+patient.regression.coeffcients
+```
+
+```{r include=FALSE}
+beta0.hat <- round(patient.regression.coeffcients$estimate[1],3)
+beta1.hat <- round(patient.regression.coeffcients$estimate[2],3)
+beta2.hat <- round(patient.regression.coeffcients$estimate[3],3)
+beta3.hat <- round(patient.regression.coeffcients$estimate[4],3)
+```
+
+The estimated regression function is $Y = `r beta0.hat` `r beta1.hat` \, X_1 `r beta2.hat` \, X_2 `r beta3.hat` \, X_3$
+
+In this case, $\hat\beta_2$ is interpreted as follows: For every unit for increase in satisfaction the illness_severity reduces by -0.442 provided that the other prediction variables are held constant
+
+### Part d
+
+To test whether there is a regression relation, we perform the hypothesis testing.\
+The Null hypothesis is $$
+H_0:\beta_1 = \beta_2 = \beta_3 = 0
+$$ The alternative is $$
+H_a: \text{At least one of } \beta_1, \beta_2, \beta_3 \text{ is not 0}
+$$ The test statistic is $$
+F^* = \frac{MSR}{MSE}
+$$
+
+The decision rule is $$
+- \,\,\text{Reject } H_0 \text{ if } F^* > F_{1 - \alpha';\,p'-1, n - p'}\\
+- \,\,\text{Do not Reject } H_0 \text{ if } F^* < F_{1 - \alpha';\,p'-1, n - p'} 
+$$ where $F_{1 - \alpha';\,p'-1, n - p'}$ is the $1 - \alpha$ percentile of a $F(p'-1,\,n-p')$ distribution
+
+Basic Information
+
+```{r}
+# Store the Design Matrix and the response vector
+X <- cbind(1,data.matrix(PatientSatisfactionData)[,2:4])
+Y <- as.vector(data.matrix(PatientSatisfactionData)[,1])
+
+n <- dim(PatientSatisfactionData)[1]
+p.prime<- dim(PatientSatisfactionData)[2]
+```
+
+Simple Method: We can read the test statistic and P-Value from the Summary of the regression model
+
+```{r}
+sum.patient.regression <- summary(patient.regression)
+F.star <- sum.patient.regression$fstatistic[1] 
+
+p.value <- pf(F.star, p.prime - 1, n - p.prime, lower.tail = FALSE)
+
+rejection <- abs(F.star) > qf(0.9, p.prime - 1, n - p.prime)
+
+rejection
+
+```
+
+Calculating by hand
+
+Plugging in the values
+
+```{r}
+sum.Y.Squared <- t(Y) %*% Y
+J <- matrix(rep(1,n), ncol = n, nrow = n)
+H <- X %*% solve(t(X) %*% X) %*% t(X)
+I <- diag(rep(1,n))
+
+SST <- t(Y) %*% Y - 1/n * t(Y) %*% J %*% Y
+SSR <- t(Y) %*% (H - 1/n * J) %*% Y
+SSE <- t(Y) %*% (I - H) %*% Y
+
+MSR <- SSR / 3
+MSE <- SSE / (n - 4)
+F.star.2 <- MSR[1]/MSE[1]
+p.value.2 <- pf(F.star, p.prime - 1, n - p.prime, lower.tail = FALSE)
+
+rejection <- F.star.2 > qf(0.9, p.prime - 1, n - p.prime)
+
+rejection
+```
+
+As you can see the test says we should reject the null hypothesis. In other words there is sufficient evidence to say that $\text{at least one of } \beta_1, \beta_2, \beta_3 \text{ is not 0}$.\
+$$
+\text{The P-Value is } `r p.value.2`
+$$ \newpage
+
+### Part e
+
+To Calculate the coefficient of determination or $R^2$ its just $\frac{SSR}{SST}$.
+
+```{r}
+R.Squared <- SSR[1]/SST[1]
+R.Squared
+```
+
+To Calculate the adjusted coefficient of determination or $R^2_{adj}$ its just $1 - \left(\frac{n-1}{n-p'}\right)\frac{SSE}{SST}$.
+
+```{r}
+Adj.R.Squared <- 1 - (n-1)/(n-p.prime) * SSE[1]/SST[1]
+Adj.R.Squared
+```
+
+$R^2$ explains the fraction of the variance in Y explained by the model. In other words the relationship between $X_1, \cdots, X_p$ and $Y$
+
+$R^2_{adj}$ accounts for the number of variables in the model.
+
+### Part f
+
+```{r}
+# New Values
+new.values <- data.frame(Age = 35, Illness_Severity = 45, Anxiety_Lvl = 2.2)
+patient.prediction <- predict(patient.regression, new.values, interval = "prediction", level = 0.9)
+patient.prediction
+```
+
+With $90\%$ confidence we can say that the new patient's satisfaction will be between $`r round(patient.prediction[2],2)`$ and $`r round(patient.prediction[3],2)`$
+
+\newpage
+
+# Question 2
+
+### Part a
+
+$H_0: K'\beta - m = \begin{bmatrix} 0\\ 0 \\ 0\end{bmatrix} => \begin{bmatrix}1 & 70 & 10 & 10 \\ 0 & 1 & 0 & 0 \\ 0&0 & 1 & -1\end{bmatrix} \begin{bmatrix} \beta_0 \\ \beta_1 \\ \beta_2 \\ \beta_3 \end{bmatrix} \enspace - \begin{bmatrix} 80 \\ 4 \\ 0\end{bmatrix} = \begin{bmatrix} 0\\ 0 \\ 0\end{bmatrix}$
+
+### Part b
+
+The F\* = $\frac{\frac{1800}{K}}{MSE} = \frac{\frac{1800}{K}}{\frac{SSE}{n-4}} = \frac{\frac{1800}{3}}{\frac{SSE}{n-4}} = \frac{600}{\frac{7800}{24-4}} = `r 600/(7800/20)`$
+
+```{r}
+p.prime = 4
+n = 24
+F.star = 600/(7800/20)
+p.value = pf(F.star, 3, n-p.prime, lower.tail = FALSE)
+p.value
+```
+
+Now, since p-value is `r p.value` which is greater than $\alpha = 0.05$, we fail to reject the hypothesis $H_0$
+
+\newpage
+
+# Question 3
+
+### Part a
+
+$$\textbf{X'X} = 
+\begin{bmatrix} 
+1 & 1 & \cdots & 1 \\ 
+I_{11} & I_{21} & \cdots & I_{n1} 
+\\ I_{12} & I_{22} & \cdots & I_{n2} 
+\end{bmatrix} \begin{bmatrix} 
+1 & I_{11} & I_{12} \\
+1 & I_{21} & I_{22} \\
+\vdots & \vdots & \vdots \\
+1 & I_{n1} & I_{n2}
+\end{bmatrix} \\ \\$$ $$= 
+\begin{bmatrix} 
+n & \sum_{i=1}^n I_{i1} & \sum_{i=1}^n I_{i2} \\
+\sum_{i=1}^n I_{i1} & \sum_{i=1}^n I_{i1}^2 & \sum_{i=1}^n I_{i1} I_{i2} \\
+\sum_{i=1}^n I_{i2} & \sum_{i=1}^n I_{i1} I_{i2} &  \sum_{i=1}^n I_{i2}^2
+\end{bmatrix}\\ \\
+$$ $$= \begin{bmatrix}
+n & n_A & n_B \\
+n_A & n_A & 0 \\
+n_B & 0 & n_B
+\end{bmatrix}\\ \\
+$$
+
+$$\textbf{X'Y}= 
+\begin{bmatrix}
+1 & 1 & \cdots & 1 \\
+I_{11} & I_{21} & \cdots & I_{n1} \\
+I_{12} & I_{22} & \cdots & I_{n2}
+\end{bmatrix}\begin{bmatrix}
+Y_1 \\
+Y_2 \\
+\vdots \\
+Y_n
+\end{bmatrix} \\ \\$$
+
+$$= \begin{bmatrix}
+\sum_{i=1}^n Y_i \\
+\sum_{i=1}^n I_{i1}Y_i \\
+\sum_{i=1}^n I_{i2}Y_i
+\end{bmatrix}\\ \\$$
+
+$$= \begin{bmatrix}
+n\,\bar y\\
+n_A\,\bar {y}_A \\
+n_B\,\bar {y}_B 
+\end{bmatrix}\\ \\$$
+
+### Part b
+
+Option 1 We need to find the inverse of $X'X$
+
+So using linear row reduction to find the Inverse Matrix.
+
+$$(X'X)^{-1} = 
+\left[
+  \begin{matrix}
+    n & n_A & n_B   \\
+    n_A & n_A & 0 \\
+    n_B & 0 & n_B \\
+  \end{matrix}
+  \left | 
+    \begin{matrix}
+      1 & 0 & 0 \\
+      0 & 1 & 0 \\
+      0 & 0 & 1 \\
+    \end{matrix}
+  \right.
+\right]\\ \\$$
+
+$$= \left[
+  \begin{matrix}
+    1 & \frac{n_A}n & \frac{n_B}n \\
+    n_A & n_A & 0 \\
+    n_B & 0 & n_B \\
+  \end{matrix}
+  \left | 
+    \begin{matrix}
+      \frac1n & 0 & 0 \\
+      0 & 1 & 0 \\
+      0 & 0 & 1 \\
+    \end{matrix}
+  \right.
+\right]\\ \\$$
+
+$$= \left[
+  \begin{matrix}
+    1 & \frac{n_A}n & \frac{n_B}n \\
+    0 & \frac{n_A(n_B + n_C)}{n} & \frac{- \,n_B\,n_A}{n} \\
+    0 & \frac{ - \,n_B\,n_A}{n} & \frac{n_B(n_A + n_C)}{n} \\
+  \end{matrix}
+  \left | 
+    \begin{matrix}
+      \frac1n & 0 & 0 \\
+      \frac{-n_A}{n} & 1 & 0 \\
+      \frac{-n_B}{n} & 0 & 1
+    \end{matrix}
+  \right.
+\right]\\ \\$$
+
+$$= \left[
+  \begin{matrix}
+    1 & \frac{n_A}n & \frac{n_B}n \\
+    0 & 1 & \frac{- \,n_B}{n_B + n_C} \\
+    0 & \frac{ - \,n_B\,n_A}{n} & \frac{n_B(n_A + n_C)}{n}
+  \end{matrix}
+  \left | 
+    \begin{matrix}
+      \frac1n & 0 & 0 \\
+      \frac{-1}{n_B + n_C} & \frac n{n_A(n_B + n_C)} & 0 \\
+      \frac{-n_B}{n} & 0 & 1
+    \end{matrix}
+  \right.
+\right]\\ \\$$
+
+$$= \left[
+  \begin{matrix}
+    1 & 0 & \frac{n_B}{n_B + n_C} \\
+    0 & 1 & \frac{- \,n_B}{n_B + n_C} \\
+    0 & 0 & \frac{n_Bn_C}{n_B + n_C} \\
+  \end{matrix}
+  \left | 
+    \begin{matrix}
+      \frac{1}{n_B + n_C} & \frac{-1}{n_B + n_C} & 0 \\
+      \frac{-1}{n_B + n_C} & \frac n{n_A(n_B + n_C)} & 0 \\
+      \frac{-n_B}{n_B + n_C} & \frac{n_B}{n_B + n_C} & 1 \\
+    \end{matrix}
+  \right.
+\right] \\ \\$$
+
+$$= \left[
+  \begin{matrix}
+    1 & 0 & \frac{n_B}{n_B + n_C} \\
+    0 & 1 & \frac{- \,n_B}{n_B + n_C} \\
+    0 & 0 & 1 \\
+  \end{matrix}
+  \left | 
+    \begin{matrix}
+      \frac{1}{n_B + n_C} & \frac{-1}{n_B + n_C} & 0 \\
+      \frac{-1}{n_B + n_C} & \frac n{n_A(n_B + n_C)} & 0 \\
+      \frac{-1}{n_C} & \frac{1}{n_C} & \frac{n_B + n_C}{n_B\,n_C}
+    \end{matrix}
+  \right.
+\right]\\ \\$$
+
+$$= \left[
+  \begin{matrix}
+    1 & 0 & 0 \\
+    0 & 1 & 0 \\
+    0 & 0 & 1 \\
+  \end{matrix}
+  \left | 
+    \begin{matrix}
+      \frac{1}{n_C} & \frac{-1}{n_C} & \frac{-1}{n_C} \\
+      \frac{-1}{n_C} & \frac{n\,n_C + n_B\,n_A}{n_C\,n_A(n_B + n_C)} & \frac{1}{n_C} \\
+      \frac{-1}{n_C} & \frac{1}{n_C} & \frac{n_B + n_C}{n_B\,n_C}
+    \end{matrix}
+  \right.
+\right]\\ \\$$
+
+So $$
+\\(X'X)^{-1}
+= 
+\begin{bmatrix}
+  \frac{1}{n_C} & \frac{-1}{n_C} & \frac{-1}{n_C} \\
+  \frac{-1}{n_C} & \frac{n\,n_C + n_B\,n_A}{n_A(n_B + n_C)} & \frac{1}{n_C} \\
+  \frac{-1}{n_C} & \frac{1}{n_C} & \frac{n_B + n_C}{n_B\,n_C}
+\end{bmatrix} \\\\$$
+
+$$ \hat \beta = (X'X)^{-1}X'Y= 
+\begin{bmatrix}
+  \frac{1}{n_C} & \frac{-1}{n_C} & \frac{-1}{n_C} \\
+  \frac{-1}{n_C} & \frac{n\,n_C + n_B\,n_A}{n_C\,n_A(n_B + n_C)} & \frac{1}{n_C} \\
+  \frac{-1}{n_C} & \frac{1}{n_C} & \frac{n_B + n_C}{n_B\,n_C}
+\end{bmatrix}
+\begin{bmatrix}
+n\,\bar y\\
+n_A\,\bar {y}_A \\
+n_B\,\bar {y}_B 
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\frac{n\,\bar y}{n_C} - \frac{n_A\,\bar{y}_A}{n_C} - \frac{n_B\,\bar{y}_B}{n_C} \\
+\frac{-n\,\bar y}{n_C} + \frac{n\,n_C\,\bar{y}_A + n_B\,n_A\,\bar{y}_A}{n_C(n_B + n_C)} + \frac{n_B\,\bar{y}_B}{n_C} \\
+\frac{-n\,\bar y}{n_C} + \frac{n_A\,\bar{y}_A}{n_C} + \frac{n_B \,\bar{y}_B\, + \,n_C \,\bar{y}_B }{n_C}
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\frac{n\,\bar y \,- \,n_A\,\bar{y}_A \,- \,n_B\,\bar{y}_B}{n_C} \\
+\frac{-n\,\bar y(n_B + n_C)}{n_C} + \frac{n\,n_C\,\bar{y}_A + n_B\,n_A\,\bar{y}_A}{n_C(n_B + n_C)} + \frac{n_B\,\bar{y}_B(n_B + n_C)}{n_C} \\
+\frac{-n\,\bar y\, + \,n_A\,\bar{y}_A \, + \,n_B \,\bar{y}_B\, + \,n_C \,\bar{y}_B }{n_C}
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\frac{n_A\,\bar{y}_A \,+ \,n_B\,\bar{y}_B \,+ \,n_C\,\bar{y}_C \,- \,n_A\,\bar{y}_A \,- \,n_B\,\bar{y}_B}{n_C} \\
+\frac{(-n_A\,\bar{y}_A \,- \,n_B\,\bar{y}_B \,- \,n_C\,\bar{y}_C)\,(n_B + n_C) \, + \, n\,n_C\,\bar{y}_A + n_B\,n_A\,\bar{y}_A \, + \,n_B^2\,\bar{y}_B + n_B\, n_C\,\bar{y}_B}{n_C(n_B + n_C)} \\
+\frac{-n_A\,\bar{y}_A \,-\,n_B\,\bar{y}_B \,- \,n_C\,\bar{y}_C\, + \,n_A\,\bar{y}_A \, + \,n_B \,\bar{y}_B\, + \,n_C \,\bar{y}_B }{n_C}
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\frac{n_C\,\bar{y}_C}{n_C} \\
+\frac{-n_A\,n_B\,\bar{y}_A \,- \,n_B^2\,\bar{y}_B \,- \,n_C\,n_B\,\bar{y}_C \,-\, n_A\,n_C\,\bar{y}_A \,-\,n_B\,n_C\,\bar{y}_B \,-\,n_C^2\,\bar{y}_C \,+ \, n\,n_C\,\bar{y}_A\,+\, n_B\,n_A\,\bar{y}_A \,+\,n_B^2\,\bar{y}_B\,+\,n_B\, n_C\,\bar{y}_B}{n_C(n_B + n_C)}\\
+\frac{- \,n_C\,\bar{y}_C\, + \,n_C \,\bar{y}_B }{n_C}
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\bar{y}_C \\
+\frac{(-n_A\,n_B\, -\, n_A\,n_C\,+\,n\,n_C\,+\, n_B\,n_A)\bar{y}_A \,+\, (-n_B^2\,- \,n_B\,n_C\, + \,n_B^2\, + \,n_B\, n_C)\bar{y}_B\,+\,(-n_C\,n_B\,- \,n_C^2)\bar{y}_C}{n_C(n_B + n_C)}\\
+\frac{n_C(\bar y_B - \bar y_C)}{n_C}
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\bar{y}_C \\
+\frac{(n\,n_C\,-\, n_A\,n_C)\bar{y}_A\,-\,(n_C^2\,+\,n_C\,n_B)\bar{y}_C}{n_C(n_B + n_C)}\\
+\bar y_B - \bar y_C
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\bar{y}_C \\
+\frac{n_C(n\,-\,n_A)\bar{y}_A\,-\,n_C(n_C\,+\,n_B)\bar{y}_C}{n_C(n_B + n_C)}\\
+\bar y_B - \bar y_C
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\bar{y}_C \\
+\frac{n_C(n_B\,+\,n_C)\bar{y}_A\,-\,n_C(n_C\,+\,n_B)\bar{y}_C}{n_C(n_B + n_C)}\\
+\bar y_B - \bar y_C
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\bar{y}_C \\
+\frac{n_C(n_B\,+\,n_C)(\bar{y}_A\,-\bar{y}_C)}{n_C(n_B + n_C)}\\
+\bar y_B - \bar y_C
+\end{bmatrix} \\ \\$$
+
+$$=
+\begin{bmatrix}
+\bar{y}_C \\
+\bar{y}_A\,-\bar{y}_C\\
+\bar y_B - \bar y_C
+\end{bmatrix} \\ \\$$
+
+Option 2 Minimizing the Sum of squared errors $S(\beta_0, \beta_1, \beta_2) = \sum_{i=1}^n(y_i - \beta_0 - \beta_1I_{1i} - \beta_2I_{2i})^2$   \
+
+$$\frac{\partial S(\beta_0, \beta_1, \beta_2)}{\beta_0} = \sum_{i=1}^n2(y_i - \beta_0 - \beta_1I_{1i} - \beta_2I_{2i})(-1)$$ $$0 = -2\sum_{i=1}^n(y_i - \beta_0 - \beta_1I_{1i} - \beta_2I_{2i})$$ $$0 = \sum_{i=1}^ny_i - \sum_{i=1}^n\beta_0 - \sum_{i=1}^n\beta_1I_{1i} - \sum_{i=1}^n \beta_2I_{2i}\\$$ $$0 = n\bar y - n\beta_0 - n_A\beta_1 - n_B\beta_2$$ $$\hat\beta_0 = \bar y  - \frac{n_A}n\beta_1 - \frac{n_B}n\beta_2$$     \
+
+$$\frac{\partial S(\beta_0, \beta_1, \beta_2)}{\beta_1} = \sum_{i=1}^n2(y_i - \beta_0 - \beta_1I_{1i} - \beta_2I_{2i})(-1I_{1i})\\$$ $$0 = -2\sum_{i=1}^n(y_i - \beta_0 - \beta_1I_{1i} - \beta_2I_{2i})I_{1i}\\$$ $$0 = \sum_{i=1}^ny_iI_{1i} - \sum_{i=1}^n\beta_0I_{1i} - \sum_{i=1}^n\beta_1I_{1i}I_{1i} - \sum_{i=1}^n \beta_2I_{2i}I_{1i}\\$$ $$0 = \bar y_A - n_A\beta_0 - n_A\beta_1\\$$ $$\hat\beta_1 = \bar y_A  - \beta_0$$     \
+
+$$\frac{\partial S(\beta_0, \beta_1, \beta_2)}{\beta_1} = \sum_{i=1}^n2(y_i - \beta_0 - \beta_1I_{1i} - \beta_2I_{2i})(-1I_{2i})\\$$ $$0 = -2\sum_{i=1}^n(y_i - \beta_0 - \beta_1I_{1i} - \beta_2I_{2i})I_{2i}\\$$ $$0 = \sum_{i=1}^ny_iI_{2i} - \sum_{i=1}^n\beta_0I_{2i} - \sum_{i=1}^n\beta_1I_{2i} - \sum_{i=1}^n \beta_2I_{2i}I_{2i}\\$$ $$0 = \bar y_B - n_B\beta_0 - n_B\beta_2$$ $$\hat\beta_2 = \bar y_B  - \beta_0$$     \
+Simplifying it,
+
+$$\beta_0 = \bar y  - \frac{n_A}n\beta_1 - \frac{n_B}n\beta_2\\$$ $$\beta_0 = \frac{\sum_{i=1}^{n_A}y_A\,+\,\sum_{i=1}^{n_B}y_B\,+\,\sum_{i=1}^{n_C}y_C}{n}  - \frac{n_A}n(\bar y_A  - \beta_0) - \frac{n_B}n(\bar y_B  - \beta_0)\\$$ $$\beta_0 = \frac{{n_A}\,\bar y_A\,+\,{n_B}\,\bar y_B\,+\,{n_C}\,\bar y_C}{n}\,-\,\frac{{n_A}\,\bar y_A}n\,+\,\frac{{n_A}\,\beta_0}n\,-\,\frac{{n_B}\,\bar y_B}n\,+\,\frac{{n_B}\,\beta_0}n$$ $$n\,\beta_0 = {n_A}\,\bar y_A\,+\,{n_B}\,\bar y_B\,+\,{n_C}\,\bar y_C\,-\,{n_A}\,\bar y_A\,+\,{n_A}\,\beta_0\,-\,{n_B}\,\bar y_B\,+\,{n_B}\,\beta_0$$ $$n\,\beta_0 = {n_C}\,\bar y_C\,+\,{n_A}\,\beta_0\,+\,{n_B}\,\beta_0\\$$ $$n\,\beta_0\,-\,{n_A}\,\beta_0\,-\,{n_B}\,\beta_0 = {n_C}\,\bar y_C\\$$ $$n_C\,\beta_0 = {n_C}\,\bar y_C$$     \
+$$\hat \beta_0 = \bar y_C\\$$ $$\hat\beta_1 = \bar y_A  - \bar y_C\\$$ $$\hat\beta_2 = \bar y_B  - \bar y_C\\$$
+
+as wanted \newpage
+
+### Part c
+
+To calculate the $SSE$ we need the residual $e_i = Y_i - \hat Y_i$ \
+So $$
+\hat Y_i = \left\{
+\begin{matrix} 
+\hat \beta_0 + \hat \beta_1 & \text{when } X_i = A\\
+\hat \beta_0 + \hat \beta_2 & \text{when } X_i = B\\
+\hat \beta_0 & \text{when } X_i = C\\
+\end{matrix}\right.$$
+
+$$
+\hat Y_i = \left\{
+\begin{matrix} 
+\bar y_A & \text{when } X_i = A\\
+\bar y_B & \text{when } X_i = B\\
+\bar y_C & \text{when } X_i = C\\
+\end{matrix}\right.\\$$
+
+Therefore the residual is $$ 
+e_i = Y_i - \hat Y_i\\
+= \left\{
+\begin{matrix} 
+Y_i - \bar y_A & \text{when } X_i = A\\
+Y_i - \bar y_B & \text{when } X_i = B\\
+Y_i - \bar y_C & \text{when } X_i = C\\
+\end{matrix}\right.$$
+
+Therefore $SSE$ is $$SSE = \sum_{i=1}^n e_i^2$$
+
+$$SSE = \sum_{i=1}^nI_A(Y_i - \bar y_A)^2 + I_B(Y_i - \bar y_B)^2 + I_C(Y_i - \bar y_C)^2\\$$
+
+$$SSE = \sum_{i=1}^{n_A}(Y_i - \bar y_A)^2 + \sum_{i=1}^{n_B}(Y_i - \bar y_B)^2 + \sum_{i=1}^{n_C}(Y_i - \bar y_C)^2\\$$
+
+By using the unbiased estimator of the Variance we can say $$SSE = (n_A - 1)\mathbb{V}_A + (n_B - 1)\mathbb{V}_B + (n_C - 1)\mathbb{V}_C\\$$
+
+$$SSE = (n_A - 1)s^2_A + (n_B - 1)s^2_B + (n_C - 1)s^2_C\\$$ as wanted.
+
+\newpage
+
+# Question 4
+
+### Part a
+
+```{r}
+egyptCotton <- read.table("egyptcttn.txt", quote="\"", comment.char="")
+names(egyptCotton) <- c("Variety","Luminance","lnGrade")
+egyptCotton$giza69 <- ifelse(egyptCotton$Variety == "Giza69", 1, 0)
+egyptCotton$giza67 <- ifelse(egyptCotton$Variety == "Giza67", 1, 0)
+egyptCotton$giza70 <- ifelse(egyptCotton$Variety == "Giza70", 1, 0)
+egyptCotton$giza68 <- ifelse(egyptCotton$Variety == "Giza68", 1, 0)
+
+### Direct coding of "new" dummy variables from "variety"
+lnGradeGiza69 <- egyptCotton$lnGrade*egyptCotton$giza69
+lnGradeGiza67 <- egyptCotton$lnGrade*egyptCotton$giza67
+lnGradeGiza70 <- egyptCotton$lnGrade*egyptCotton$giza70
+lnGradeGiza68 <- egyptCotton$lnGrade*egyptCotton$giza68
+
+fit.FullModel <- lm(Luminance ~ lnGrade + giza69 + giza67 + giza70 + giza68 +
+                      lnGradeGiza69 + lnGradeGiza67 + lnGradeGiza70 + lnGradeGiza68
+                    , data = egyptCotton)
+summary(fit.FullModel)
+```
+
+Therefore, from the above the full model is:
+
+$`r coefficients(fit.FullModel)[1]` + `r coefficients(fit.FullModel)[2]`lnGrade + `r coefficients(fit.FullModel)[3]`giza69 + `r coefficients(fit.FullModel)[4]`giza67 + `r coefficients(fit.FullModel)[5]`giza70 + `r coefficients(fit.FullModel)[6]`giza68 \\ `r coefficients(fit.FullModel)[7]`lnGradeGiza69 `r coefficients(fit.FullModel)[8]`lnGradeGiza67 `r coefficients(fit.FullModel)[9]`lnGradeGiza70 `r coefficients(fit.FullModel)[10]`lnGradeGiza68$
+
+### Part b
+
+The model in part a follows the following format: $E(Luminance) = \beta_0 + \beta_1\text{lnGrade} + \beta_2\text{Giza69} + \beta_3\text{Giza67} + \beta_4\text{Giza70} + \beta_5\text{Giza68} + \beta_6\text{lnGradeGiza69} + \beta_7\text{lnGradeGiza67} + \beta_8\text{lnGradeGiza70} + \beta_9\text{lnGradeGiza68}$
+
+And we want to test the following:
+
+$H_0: \beta_6 = \beta_7 = \beta_8 = \beta_9 = 0$
+
+```{r}
+#summary(fit.FullModel)
+fullAnova = anova(fit.FullModel)
+n = as.numeric(nrow(egyptCotton))
+MSE.FullModel = as.numeric(fullAnova$`Mean Sq`[10])
+SSE.FullModel = as.numeric(fullAnova$`Sum Sq`[10])
+df.FullModel = n - as.numeric(length(fit.FullModel$coefficients))
+
+#print("\n Reduced \n")
+fit.reduced = lm(Luminance  ~ Variety + lnGrade, data = egyptCotton)
+#summary(fit.reduced)
+reducedAnova = anova(fit.reduced)
+df.ReducedModel = n - as.numeric(length(fit.reduced$coefficients))
+#df.ReducedModel
+#reducedAnova
+SSE.reduced = as.numeric(reducedAnova$`Sum Sq`[3])
+
+# SSE.reduced = 0.216423 
+# SSE.FullModel = 0.211794
+# df.ReducedModel = 432
+# df.FullModel = 431
+# MSE.FullModel = SSE.FullModel/df.FullModel
+
+F.star = ((SSE.reduced-SSE.FullModel)/(df.ReducedModel-df.FullModel))/MSE.FullModel
+F.star
+qf(0.95, df.ReducedModel-df.FullModel, df.FullModel)
+p.value = pf(F.star, df.ReducedModel-df.FullModel, df.FullModel, lower.tail= FALSE)
+p.value
+```
+
+Now, the p-value is `r pf(F.star, 4, df.FullModel, lower.tail= FALSE)` Which is less than 0.05. Hence, we reject the null hypothesis $H_0$
+
+### Part c
+
+Let's assume that we fail to reject the null hypothesis in part (b) (i.e. $\beta_6 = \beta_7 = \beta_8 = \beta_9 = 0$).
+
+Now, the new model is:
+
+```{r}
+fit.newModel = lm(Luminance ~ lnGrade + giza69 + giza67 + giza70 + giza68, data=egyptCotton)
+summary(fit.newModel)
+```
+
+Now, the new model is: $`r coefficients(fit.newModel)[1]` + `r coefficients(fit.newModel)[2]`lnGrade `r coefficients(fit.newModel)[3]`giza69 `r coefficients(fit.newModel)[4]`giza67 `r coefficients(fit.newModel)[5]`giza70 + `r coefficients(fit.newModel)[6]`giza68$
+
+The model in part a follows the following format: $E(Luminance) = \beta_0 + \beta_1\text{lnGrade} + \beta_2\text{Giza69} + \beta_3\text{Giza67} + \beta_4\text{Giza70} + \beta_5\text{Giza68}\\$
+
+And we want to test the following:
+
+$H_0: \beta_2 = \beta_3 = \beta_4 = \beta_5 = 0$
+
+```{r}
+newAnova = anova(fit.newModel)
+MSE.newModel = as.numeric(newAnova$`Mean Sq`[6])
+SSE.newModel = as.numeric(newAnova$`Sum Sq`[6])
+df.newModel = as.numeric(newAnova$`Df`[6])
+
+fit.newReduced = lm(Luminance  ~ lnGrade, data = egyptCotton)
+newReducedAnova = anova(fit.newReduced)
+SSE.newReduced = as.numeric(newReducedAnova$`Sum Sq`[2])
+
+F.star = ((SSE.newReduced-SSE.newModel)/4)/MSE.newModel
+
+p.value = pf(F.star, 4, df.newModel, lower.tail= FALSE)
+p.value
+```
+
+Now, the p-value is `r pf(F.star, 4, df.newModel, lower.tail= FALSE)` Which is less than 0.05. Hence, we reject the null hypothesis $H_0$
+
+### Part d
+
+Since, in parts b & c of this question we rejected both the following hypothesis:
+
+$H_0: \beta_6 = \beta_7 = \beta_8 = \beta_9 = 0 \\ H_0: \beta_2 = \beta_3 = \beta_4 = \beta_5 = 0$
+
+Therefore, the model I will be using the full model from part (a) of this question which is:
+
+$`r coefficients(fit.FullModel)[1]` + `r coefficients(fit.FullModel)[2]`lnGrade + `r coefficients(fit.FullModel)[3]`giza69 + `r coefficients(fit.FullModel)[4]`giza67 + `r coefficients(fit.FullModel)[5]`giza70 + `r coefficients(fit.FullModel)[6]`giza68 \\ `r coefficients(fit.FullModel)[7]`lnGradeGiza69 `r coefficients(fit.FullModel)[8]`lnGradeGiza67 `r coefficients(fit.FullModel)[9]`lnGradeGiza70 `r coefficients(fit.FullModel)[10]`lnGradeGiza68$
+
+Since in this question, the objective is not predicting nor estimating the mean response. Instead, we're simply looking for ways to describe the behavior of the response variable. Hence, according to slide 10 on lecture 18, the full model is the model I would choose for this data.
+
+### Part e
+
+Assumptions:
+
+-   Errors are independent
+
+-   Error variance is contant (does not depend on the level of X)
+
+-   Errors are normally distriuted
+
+-   The relationship is linear
+
+Residual Plot:
+
+```{r}
+#Store the residuals of the dataset
+Residuals <- resid(fit.FullModel)
+
+# store the fitted values of the regression
+Fitted <- fitted.values(fit.FullModel)
+
+# Combine them into data frame
+graph.data <- cbind.data.frame(Residuals, Fitted)
+
+# PLot the graph
+ggplot(graph.data, aes(x=Fitted, y=Residuals)) + geom_point() +
+ggtitle("Residuals vs Fitted Values") + geom_hline(yintercept = 0)
+```
+
+Based on the residual plot, we can't see any patterns, they are randomly scattered. Hence, the error variance seems to be constant, and the relationship is linear.
+
+```{r}
+# Plot the graph to test the normality
+qqnorm(Residuals)
+qqline(Residuals)
+
+# Perform the Shapiro test
+shapiro.test(Residuals)
+```
+
+Based on how spread the dots are on the Normal Q-Q plot and how far they are from forming a line y=x shape and the p-value of the Shapiro-Wilk's test which is 0.01908 which is much lower than 0.05, we cannot conclude that the residuals are coming from the normal population. Thus not all the regression assumptions are satisfied.
+
+\newpage
+
+# Question 5
+
+### Part a
+
+```{r}
+
+strengthWool <- read.table("StrengthWool.txt", quote="\"", comment.char="", header=TRUE)
+fitaf <- lm(Cycles~factor(Len) + factor(Load) + factor(Amp), data = strengthWool)
+
+summary(fitaf)
+rSquared = summary(fitaf)$r.squared
+
+#Store the residuals of the dataset
+Residuals <- resid(fitaf)
+
+# store the fitted values of the regression
+Fitted <- fitted.values(fitaf)
+
+# Combine them into data frame
+graph.data <- cbind.data.frame(Residuals, Fitted)
+
+# PLot the graph
+ggplot(graph.data, aes(x=Fitted, y=Residuals)) + geom_point() +
+ggtitle("Residuals vs Fitted Values") + geom_hline(yintercept = 0)
+
+# Plot the graph to test the normality
+qqnorm(Residuals)
+qqline(Residuals)
+
+# Perform the Shapiro test
+shapiro.test(Residuals)
+```
+
+We can see from the summary of the model that $R^2 = `r rSquared`$ which means that the predictors of this model explain roughly 77% of the variance of our response variable (Cycles). Also, looking at the residuals plot, it looks like there is the some quadratic relationship and that is slightly negative expanding. This means that we have a non-constant variance in our model. Also from the normal Q-Q plot, and the dots are not forming a great line y=x shape, hence our errors are somewhat normally distributed. This is also confirmed by the p-value of the shapiro-Wilk test which is approximatley 0.08 which is very closely above 0.05. As such, this model is not a very good fit for the data.
+
+### Part b
+
+```{r}
+fitaf2 <- lm(Cycles~factor(Len) * factor(Load) + factor(Len) * factor(Amp) 
+             + factor(Load) * factor(Amp), data = strengthWool)
+summary(fitaf2)
+
+rSquared = summary(fitaf2)$r.squared
+
+#Store the residuals of the dataset
+Residuals <- resid(fitaf2)
+
+# store the fitted values of the regression
+Fitted <- fitted.values(fitaf2)
+
+# Combine them into data frame
+graph.data <- cbind.data.frame(Residuals, Fitted)
+
+# PLot the graph
+ggplot(graph.data, aes(x=Fitted, y=Residuals)) + geom_point() +
+ggtitle("Residuals vs Fitted Values") + geom_hline(yintercept = 0)
+
+# Plot the graph to test the normality
+qqnorm(Residuals)
+qqline(Residuals)
+
+# Perform the Shapiro test
+shapiro.test(Residuals)
+```
+
+We can see from the summary of the model that $R^2 = `r rSquared`$ which means that the predictors of this model explain almost 100% of the variance of our response variable (Cycles). Also, based on the residual plot, we cannot see any patterns, they are randomly scattered. Hence, the error variance seems to be constant, and the relationship is linear. In addition to that, Based on how closely the Normal Q-Q plot is forming a shape of a line y=x and the Shapiro-Wilk's test's p-value which is 0.6331 which is very largely greater than 0.05, we can conclude that the residuals are coming from the normal population. Thus all regression assumptions are satisfied and this model is a very good fit for the data and of course fits it much better than the model in part (a).
+
+### Part c
+
+```{r}
+fitaf3 <- lm(log(Cycles)~factor(Len) + factor(Load) + factor(Amp), data = strengthWool)
+
+summary(fitaf3)
+rSquared = summary(fitaf3)$r.squared
+
+#Store the residuals of the dataset
+Residuals <- resid(fitaf3)
+
+# store the fitted values of the regression
+Fitted <- fitted.values(fitaf3)
+
+# Combine them into data frame
+graph.data <- cbind.data.frame(Residuals, Fitted)
+
+# PLot the graph
+ggplot(graph.data, aes(x=Fitted, y=Residuals)) + geom_point() +
+ggtitle("Residuals vs Fitted Values") + geom_hline(yintercept = 0)
+
+# Plot the graph to test the normality
+qqnorm(Residuals)
+qqline(Residuals)
+
+# Perform the Shapiro test
+shapiro.test(Residuals)
+```
+
+Since R treats log in base as the natural logarithm. So the log transformation in the model above is actually a Ln transformation. As we can see from the summary of the model that $R^2 = `r rSquared`$ which means that the predictors of this model explain almost 97% of the variance of our response variable (Cycles). Also, based on the residual plot, we cannot see any patterns, they are randomly scattered. Hence, the error variance seems to be constant, and the relationship is linear. In addition to that, Based on how very closely the Normal Q-Q plot is forming a shape of a line y=x and the Shapiro-Wilk's test's p-value which is 0.9458 which is very largely greater than 0.05, we can conclude that the residuals are coming from the normal population. Thus all regression assumptions are satisfied and this model is a very good fit for the data.
+
+### Part d
+
+```{r}
+fitaf4 <- lm(log(Cycles)~factor(Len) * factor(Load) + factor(Len) * factor(Amp) + 
+               factor(Load) * factor(Amp), data = strengthWool)
+summary(fitaf2)
+
+rSquared = summary(fitaf4)$r.squared
+
+#Store the residuals of the dataset
+Residuals <- resid(fitaf4)
+
+# store the fitted values of the regression
+Fitted <- fitted.values(fitaf4)
+
+# Combine them into data frame
+graph.data <- cbind.data.frame(Residuals, Fitted)
+
+# PLot the graph
+ggplot(graph.data, aes(x=Fitted, y=Residuals)) + geom_point() +
+ggtitle("Residuals vs Fitted Values") + geom_hline(yintercept = 0)
+
+# Plot the graph to test the normality
+qqnorm(Residuals)
+qqline(Residuals)
+
+# Perform the Shapiro test
+shapiro.test(Residuals)
+```
+
+As we can see from the summary of the transformed model that $R^2 = `r rSquared`$ which means that the predictors of this model explain almost 99% of the variance of our response variable (Cycles). Also, based on the residual plot, we cannot see any patterns, they are randomly scattered. Hence, the error variance seems to be constant, and the relationship is linear (same as the model in part (c)). In addition to that, Based on how very closely the Normal Q-Q plot is forming a shape of a line y=x and the Shapiro-Wilk's test's p-value which is 0.4806 which is very largely greater than 0.05, we can conclude that the residuals are coming from the normal population. Hence, there is no clear difference between this model and model in part (c), in fact, they are closely similar. Hence, in the transformed scale, the model with the interactions is no better than the model with main effects only.

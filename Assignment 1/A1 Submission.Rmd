@@ -1,0 +1,357 @@
+---
+title: 'Assignment #1'
+author: "Aly Abdelwahed, Manish Suresh"
+date: "1/21/2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: pdf
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1
+
+## Part A
+
+```{r}
+set.seed(1005228013)
+
+x <- seq(20, 160, by = 10)
+
+
+sample100 <- rnorm(100, mean=100, sd=20)
+sample1000 <- rnorm(1000, mean=100, sd=20)
+sample10000 <- rnorm(10000, mean=100, sd=20)
+sample100000 <- rnorm(100000, mean=100, sd=20)
+par(mfrow=c(2,2))
+
+hist(sample100, prob =TRUE)
+curve(dnorm(x, mean=100, sd=20), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+hist(sample1000, prob=TRUE)
+curve(dnorm(x, mean=100, sd=20), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+hist(sample10000, prob=TRUE)
+curve(dnorm(x, mean=100, sd=20), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+hist(sample100000, prob=TRUE)
+curve(dnorm(x, mean=100, sd=20), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+```
+
+-   Accuracy notes
+
+    -   In sample 1 (100 samples) we can say it is average accuarcy (60%) because most of the histogram touches the density graph with a few mismatches.
+    -   In sample 2 (1000 samples) we can say it is fair/somewhat accurate (75%) because the every bar of the histogram touches the density graph but density graph does not pass through the center of the bar indicating that the accuracy is off.
+    -   In sample 3 (10000 samples) we can say it is pretty accurate (95%) because the density graph of the normal distributuion passes through the middle of every bar on the histogram as seen above but the mean of of the histogram is slightly shifted.
+    -   In sample 4 (100000 samples) we can say it is very accurate (99%) because the density graph of the normal distributuion passes through the middle of every bar on the histogram as seen above.
+
+\newpage
+
+## Part B
+
+|                    |      Theoretical Values      |                Sample100                |                Sample1000                |                Sample10000                |                Sample100000                |
+|:------------------:|:----------------------------:|:---------------------------------------:|:----------------------------------------:|:-----------------------------------------:|:------------------------------------------:|
+|        Mean        |           **100**            |         **`r mean(sample100)`**         |         **`r mean(sample1000)`**         |         **`r mean(sample10000)`**         |         **`r mean(sample100000)`**         |
+| Standard Deviation |            **20**            |          **`r sd(sample100)`**          |          **`r sd(sample1000)`**          |          **`r sd(sample10000)`**          |          **`r sd(sample100000)`**          |
+|   2.5 Percentile   | **`r qnorm(.025, 100, 20)`** | **`r quantile(sample100, prob=0.025)`** | **`r quantile(sample1000, prob=0.025)`** | **`r quantile(sample10000, prob=0.025)`** | **`r quantile(sample100000, prob=0.025)`** |
+|   25 Percentile    | **`r qnorm(.25, 100, 20)`**  | **`r quantile(sample100, prob=0.25)`**  | **`r quantile(sample1000, prob=0.25)`**  | **`r quantile(sample10000, prob=0.25)`**  | **`r quantile(sample100000, prob=0.25)`**  |
+|   50 Percentile    |  **`r qnorm(.5, 100, 20)`**  |  **`r quantile(sample100, prob=0.5)`**  |  **`r quantile(sample1000, prob=0.5)`**  |  **`r quantile(sample10000, prob=0.5)`**  |  **`r quantile(sample100000, prob=0.5)`**  |
+|   75 Percentile    | **`r qnorm(.75, 100, 20)`**  | **`r quantile(sample100, prob=0.75)`**  | **`r quantile(sample1000, prob=0.75)`**  | **`r quantile(sample10000, prob=0.75)`**  | **`r quantile(sample100000, prob=0.75)`**  |
+|  97.5 Percentile   | **`r qnorm(.975, 100, 20)`** | **`r quantile(sample100, prob=0.975)`** | **`r quantile(sample1000, prob=0.975)`** | **`r quantile(sample10000, prob=0.975)`** | **`r quantile(sample100000, prob=0.975)`** |
+
+-   Comparison (TBD)
+
+# **Question 2**
+
+## Part A
+
+### Part 1
+
+We know that
+
+$$S_{XX} = \sum_{i=1}^n(X_i - \bar{X})^2$$ $$S_{XX} = \sum_{i=1}^n(X_i^2 - 2X_i\bar{X} + \bar{X}^2)$$ $$S_{XX} = \sum_{i=1}^n(X_i^2) - \sum_{i=1}^n(2X_i\bar{X}) + \sum_{i=1}^n(\bar{X}^2)$$ $$S_{XX} = \sum_{i=1}^n(X_i^2) - 2\bar{X}\sum_{i=1}^n(X_i) + n(\bar{X}^2)$$ $$S_{XX} = \sum_{i=1}^n(X_i^2) - 2\bar{X}n\bar{X} + n(\bar{X}^2)$$ $$S_{XX} = \sum_{i=1}^n(X_i^2) - 2n\bar{X}^2 + n(\bar{X}^2)$$ $$S_{XX} = \sum_{i=1}^n(X_i^2) - n\bar{X}^2$$
+
+as wanted.
+
+### Part 2
+
+We know that $$S_{XY} = \sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})$$ $$S_{XY} = \sum_{i=1}^n(X_iY_i - X_i\bar{Y} - Y_i\bar{X} + \bar{X}\bar{Y})$$ $$S_{XY} = \sum_{i=1}^n(X_iY_i) - \sum_{i=1}^n(X_i\bar{Y}) - \sum_{i=1}^n(Y_i\bar{X}) + \sum_{i=1}^n(\bar{X}\bar{Y})$$ $$S_{XY} = \sum_{i=1}^n(X_iY_i) - \bar{Y}\sum_{i=1}^n(X_i) - \bar{X}\sum_{i=1}^n(Y_i) + n(\bar{X}\bar{Y})$$ $$S_{XY} = \sum_{i=1}^n(X_iY_i) - \bar{Y}n\bar{X} - \bar{X}n\bar{Y} + n(\bar{X}\bar{Y})\\$$ $$S_{XY} = \sum_{i=1}^n(X_iY_i) - n(\bar{X}\bar{Y})$$ as wanted
+
+## Part B
+
+### Part 1
+
+$$r\frac{S_x}{S_y} = \frac{1}{n-1}\sum_{i=1}^n\left(\frac{(X_i - \bar{X})(Y_i - \bar{Y}}{S_xS_y}\right)\frac{S_y}{S_x}\\$$ $$r\frac{S_x}{S_y} = \frac{1}{(n-1)S_xS_y}\sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})\frac{S_y}{S_x}\\$$ $$r\frac{S_x}{S_y} = \frac{1}{(n-1)S_x}\sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})\frac{1}{S_x}\\$$ $$r\frac{S_x}{S_y} = \frac{1}{(n-1)S_x^2}\sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})\\$$ $$r\frac{S_x}{S_y} = \frac{1}{(n-1)Var(x)}\sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})\\$$ $$r\frac{S_x}{S_y} = \frac{1}{(n-1)\frac{\sum_{i=1}^n(X_i - \bar{X})^2}{n-1}}\sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})\\$$ $$r\frac{S_x}{S_y} = \frac{1}{\sum_{i=1}^n(X_i - \bar{X})^2}\sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})\\$$ $$r\frac{S_x}{S_y} = \frac{\sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})}{\sum_{i=1}^n(X_i - \bar{X})^2}\\$$ as wanted
+
+## Part B
+
+### Part 2
+
+We want to show $$\frac{\hat{\beta_1}}{s.e(\hat{\beta_1})} = \frac{r\sqrt{n-2}}{\sqrt{1-r^2}}$$ Expanding the LHS we get $$LHS = \frac{\sum_{i=1}^n(X_i - \bar{X})(Y_i - \bar{Y})}{\sum_{i=1}^n(X_i - \bar{X})^2} \cdot \frac{1}{s.e(\hat{\beta_1})}$$ $$LHS = \frac{S_{XY}}{S_{XX}} \cdot \frac{\sqrt{S_{XX}}}{\hat{\sigma}}$$ $$LHS = \frac{S_{XY}}{\sqrt{S_{XX}}} \cdot \frac{\sqrt{n-2}}{\sqrt{SSE}}$$ $$LHS = \frac{S_{XY}\sqrt{n-2}}{\sqrt{S_{XX}\cdot SSE}}$$ $$LHS = \frac{S_{XY}\sqrt{n-2}}{\sqrt{S_{XX}\cdot (SST - SSR)}}$$ $$LHS = \frac{S_{XY}\sqrt{n-2}}{\sqrt{S_{XX} \cdot (S_{YY} - \hat{\beta_1}^2 \cdot S_{XX})}}$$ $$LHS = \frac{S_{XY}\sqrt{n-2}}{\sqrt{S_{XX}\cdot S_{YY} - \hat{\beta_1}^2 \cdot (S_{XX})^2}}$$ $$LHS = \frac{S_{XY}\sqrt{n-2}}{\sqrt{S_{XX}\cdot S_{YY} - (S_{XY})^2}}$$
+
+Expanding the RHS we get
+
+$$RHS = r\frac{\sqrt{n-2}}{\sqrt{1-r^2}}$$ $$RHS = \frac{1}{n-1}\sum (\frac{Y_i - \bar{Y}}{S_Y}) (\frac{X_i - \bar{X}}{S_X}) \cdot \frac{\sqrt{n-2}}{\sqrt{1-(\frac{1}{n-1}\sum (\frac{Y_i \cdot \bar{Y}}{S_Y}) (\frac{X_i \cdot \bar{X}}{S_X}))^2}}$$ $$ RHS = \frac{\sum(Y_i - \bar{Y})(X_i - \bar{Y})}{(n-1) \cdot S_X \cdot S_Y}  \cdot \frac{\sqrt{n-2}}{\sqrt{1-(\frac{\sum(Y_i - \bar{Y})(X_i - \bar{Y})}{n-1 \cdot S_X \cdot S_Y} )^2}}$$ $$ RHS = \frac{S_{XY}}{(n-1) \cdot S_X \cdot S_Y} \cdot \frac{\sqrt{n-2}}{\sqrt{1-\frac{(S_{XY})^2}{(n-1)^2 \cdot (S_X)^2 \cdot (S_Y)^2}}}$$ $$ RHS = \frac{S_{XY}}{(n-1) \cdot S_X \cdot S_Y} \cdot \frac{\sqrt{n-2}}{\sqrt{\frac{(n-1)^2 \cdot (S_X)^2 \cdot (S_Y)^2 - (S_{XY})^2}{(n-1)^2 \cdot (S_X)^2 \cdot (S_Y)^2}}}$$ $$ RHS = \frac{S_{XY}}{(n-1) \cdot S_X \cdot S_Y} \cdot \frac  {\sqrt{n-2} \cdot  \sqrt{(n-1)^2 \cdot (S_X)^2 \cdot (S_Y)^2}}  {\sqrt     {{(n-1)^2 \cdot (S_X)^2 \cdot (S_Y)^2 - (S_{XY})^2}}}$$ $$ RHS = \frac{S_{XY}}{(n-1) \cdot S_X \cdot S_Y} \cdot \frac  {\sqrt{n-2} \cdot  (n-1) \cdot S_X \cdot S_Y}  {\sqrt     {{(n-1)^2 \cdot (S_X)^2 \cdot (S_Y)^2 - (S_{XY})^2}}}$$ $$ RHS = \frac{S_{XY} \cdot \sqrt{n-2}}{\sqrt{{(n-1)^2 \cdot (S_X)^2 \cdot (S_Y)^2 - (S_{XY})^2}}}$$ $$ RHS = \frac{S_{XY} \cdot \sqrt{n-2}}{\sqrt{{(n-1)^2 \cdot Var_X \cdot Var_Y - (S_{XY})^2}}}$$ $$ RHS = \frac{S_{XY} \cdot \sqrt{n-2}}{\sqrt{{(n-1)^2 \cdot \frac{S_{XX}}{(n-1)} \cdot \frac{S_{YY}}{(n-1)} - (S_{XY})^2}}}$$ $$ RHS = \frac{S_{XY} \cdot \sqrt{n-2}}{\sqrt{{S_{XX} \cdot S_{YY} - (S_{XY})^2}}}$$
+
+We have LHS = RHS as wanted
+
+\newpage
+
+# Question 3
+
+## Part A
+
+The least square estimates are:
+
+|                                             |                                                           |
+|---------------------------------------------|:----------------------------------------------------------|
+| $$\hat{\beta}_1 = \frac{S_{XY}}{S_{XX}}$$   | $$\hat{\beta}_0 = \bar{Y} - \hat{\beta}_1 \cdot \bar{X}$$ |
+| $$\hat{\beta}_1 = \frac{-757.64}{3756.96}$$ | $$\hat{\beta}_0 = \frac{281.9}{26} - \hat{\beta}_1$$      |
+| $$\hat{\beta}_1 = -0.202 $$                 | $$\hat{\beta}_0 = 10.84 - (-0.202) \cdot 62.04$$          |
+|                                             | $$\hat{\beta}_0 = 685.151$$                               |
+
+The least square estimated for $\hat{\beta}_1$ is $-0.202$ and $\hat{\beta}_0$ is $685.151$
+
+## Part B
+
+We know from Question 2 part b that:
+
+$$
+\hat{\beta_1} = r \frac{S_y}{S_x} \qquad \& \qquad \frac{\hat{\beta_1}}{SE(\hat{\beta_1})} = \frac{r\sqrt{n-2}}{\sqrt{1-r^2}} 
+$$
+
+$$
+\therefore \space \frac{\frac{r \times S_y}{S_x}}{SE(\hat{\beta_1})} = \frac{r\sqrt{n-2}}{\sqrt{1-r^2}} <=> \frac{1}{SE(\hat{\beta_1})} = \frac{r\sqrt{n-2}}{\sqrt{1-r^2}} \div \frac{r \times S_y}{S_x}
+$$
+
+$$
+<=> \frac{1}{SE(\hat{\beta_1})} = \frac{r\sqrt{n-2}}{\sqrt{1-r^2}} \times \frac{S_x}{r \times S_y} = \frac{S_x\sqrt{n-2}}{S_y\sqrt{1-r^2}}
+$$
+
+$$
+<=> SE(\hat{\beta_1}) = \frac{S_y\sqrt{1-r^2}}{S_x\sqrt{n-2}}
+$$
+
+$\text{Now we know that:}$
+
+$$
+S_{XX} = (n-1)(S_x)^2 \qquad \& \qquad S_{YY} = (n-1)(S_y)^2
+$$
+
+$$
+\therefore 3756.96 = (26-1)(S_x)^2 \qquad \& \qquad 465.34 = (26-1)(S_y)^2
+$$ $$
+<=> \frac{3756.96}{25} = (S_x)^2 \qquad \& \qquad \frac{465.34}{25} = (S_y)^2
+$$
+
+$$
+<=> \sqrt{\frac{3756.96}{25}} = S_x \qquad \& \qquad \sqrt{\frac{465.34}{25}} = S_y
+$$ $$
+<=> S_x = 12.26 \qquad \& \qquad S_y = 4.31
+$$
+
+$$\therefore \enspace \hat\beta_1 = r\frac{12.26}{4.31}$$ $$\therefore \enspace  -0.202= 2.84r$$ $$ <=> r = -0.0711$$ $$\therefore \enspace \frac{\hat{\beta_1}}{SE(\hat{\beta_1})} = \frac{r\sqrt{n-2}}{\sqrt{1-r^2}} <=> \frac{SE(\hat{\beta_1})}{\hat{\beta_1}} = \frac{\sqrt{1-r^2}}{r\sqrt{n-2}} <=> SE(\hat{\beta_1}) = \frac{\hat{\beta_1}\sqrt{1-r^2}}{r\sqrt{n-2}}$$ $$\therefore SE(\hat{\beta_1}) = \frac{\hat{\beta_1}\sqrt{1-r^2}}{r\sqrt{n-2}} = \frac{-0.202\sqrt{1-(-0.0711)^2}}{-0.0711\sqrt{26-2}} = 0.6$$ $\text{Now, we know that:}$ $$SE(\hat{\beta_1}) = \sqrt{\frac{\hat\sigma^2}{S_{XX}}} <=> 0.6 = \sqrt{\frac{\hat\sigma^2}{3756.96}} <=> 0.36 = \frac{\hat\sigma^2}{3756.96}$$ $$\therefore \hat\sigma^2 = 1352.51$$ $\text{We know from the lecture notes that: } SE(\beta_0) = S_{b_0} = \sqrt{(\frac{1}{n} + \frac{\overline{X}}{S_{XX}}) \hat\sigma^2} = \sqrt{(\frac{1}{26} + \frac{\frac{1613}{26}}{3756.96}) 1352.51} = 8.62$
+
+$$\therefore SE(\hat\beta_0) = 8.62 \enspace \& \enspace SE(\hat\beta_1) = 0.6$$
+
+## Part c
+
+#### The 95% confidence interval for the slope is:
+
+$$(\hat\beta_1-t_{0.975}(24) \times SE(\hat\beta_1), \enspace \hat\beta_1 + t_{0.975}(24)\times SE(\hat\beta_1))$$ $$= (-0.202-(2.064 \times 0.6), \enspace -0.202+(2.064 \times 0.6))$$ $$= (-1.44, \enspace 1.04)$$
+
+#### The 95% confidence interval for the intercept is:
+
+$$(\hat\beta_1-t_{0.975}(24) \times SE(\hat\beta_0), \enspace \hat\beta_0 + t_{0.975}(24)\times SE(\hat\beta_0))$$ $$= (685.151-(2.064 \times 8.62), \enspace 685.151+(2.064 \times 8.62))$$ $$= (667.36, \enspace 702.94)$$
+
+## Part d
+
+### Interpretation for the slope:
+
+With 95% confidence, we estimate that the mean of the change the levels of cortisol-binding globulin (CBG) changes by between a decrease of 1.44 to an increase 1.04 for each additional increase of the person's age.
+
+### Interpretation for the intercept:
+
+With 95% confidence, we estimate that the change the levels of cortisol-binding globulin (CBG) is between an increase of 667.46 to 702.94 when the person is born
+
+\newpage
+
+# Question 4
+
+## Part A
+
+We want to find the least square estimate of $\beta_1$ which is the element $\hat{\beta_1}$ that minimizes the equation
+
+$$ Q = \sum_{i=1}^{n}(Y_i - \beta_1X_i)^2 $$
+
+Now,
+
+$$\frac{d}{d\beta_1} Q = \sum_{i=1}^{n}2(Y_i - \beta_1X_i)\times\frac{d}{d\beta_1}[(Y_i-\beta_1X_i)]$$ $$= \sum_{i=1}^{n}2(Y_i - \beta_1X_i)\times(-X_i)$$ $$= -2\sum_{i=1}^{n}(Y_iX_i - \beta_1X_i^2)$$ $$= -2(\sum_{i=1}^{n}Y_iX_i \enspace- \beta_1\sum_{i=1}^{n}X_i^2) \qquad(*)$$
+
+Now, setting the equation $*$ equal to zero yields the following:
+
+$$-2(\sum_{i=1}^{n}Y_iX_i \enspace- \beta_1\sum_{i=1}^{n}X_i^2) = 0$$ $$\\ => \sum_{i=1}^{n}Y_iX_i \enspace- \beta_1\sum_{i=1}^{n}X_i^2 = 0\\$$ $$\\ => \sum_{i=1}^{n}Y_iX_i \enspace= \beta_1\sum_{i=1}^{n}X_i^2 \\$$ $$\\ => \hat{\beta_1} = \frac{\sum_{i=1}^{n}Y_iX_i}{\sum_{i=1}^{n}X_i^2}$$ $\\$ Therefore the least square estimator of $\beta_1$ is $$\hat{\beta_1} = \frac{\sum_{i=1}^{n}Y_iX_i}{\sum_{i=1}^{n}X_i^2}$$
+
+\newpage
+
+# Question 5
+
+$$
+\text{We know that the point estimator} \enspace b_1 = \frac{\sum{(X_i - \overline{X})(Y_i - \overline{Y})}}{\sum{(X_i - \overline{X})^2}} \enspace \text{and that for the normal error regression model,}
+$$
+
+$$
+\text{the sampling distribution of} \enspace b_1 \text{is normal, with mean and variance: } \enspace E\{b_1\} = \beta_1 \enspace \text{and} \enspace \sigma^2\{b_1\} = \frac{\sigma^2}{\sum{(X_i - \overline{X})^2}} 
+$$
+
+$$\text{We also know that } b_1 \enspace \text{as a linear combination of the observations } Y_i \enspace \text{as follows:}$$
+
+$$
+b_1= \sum{k_iY_i} \enspace \text{where } k_i = \frac{X_i - \overline{X}}{\sum{(X_i - \overline{X})^2}} (*)
+$$
+
+$$
+\text{We know the following properties from the textbook about the coefficients} \enspace k_i \enspace\text{which are:} 
+$$
+
+$$
+\sum{k_i}=0 \enspace \& \sum{k_iX_i}=1 \enspace \& \sum{k_i^2}= \frac{1}{\sum{(X_i - \overline{X})^2}}
+$$
+
+$$
+\text{The unbiasedness of the point estimator }b_1:
+$$
+
+$$
+E\{b_1\} = E\{\sum{k_iY_i}\} = \sum{k_iE\{Y_i}\} = \sum{k_i(\beta_0 + \beta_1X_i)} 
+$$
+
+$$= \beta_0\sum{k_i} + \beta_1\sum{k_iX_i}= \beta_0(0) + \beta_1(1) = \beta_1 \\
+$$
+
+$\text{Similarly, The variance of } b_i \text{ can be derived readily. We only need to remember that } Y_i \enspace \text{are independent random }$
+
+$\text{variables, each with variance}\enspace \sigma^2, \text{ and that} \enspace k_i \enspace\text{are constants. Therefore: }$
+
+$$
+\sigma^2\{b_1\} =\sigma^2\{\sum{k_iY_i}\} = \sum{k_i^2\sigma^2\{Y_i}\} = \sum{k_i^2\sigma^2} = \sigma^2 \sum{k_i^2} = \sigma^2\frac{1}{\sum{(X_i - \overline{X})^2}}
+$$
+
+$$
+\text{Now, We can estimate the variance of the sampling distribution of } \enspace b_1 \enspace \text{by replacing the parameter } \sigma^2 \enspace \text{with MSE, }
+$$
+
+$$\text{the unbiased estimator of } \sigma^2 \text{is:} \enspace s^2\{b_1\} = \frac{MSE}{\sum{(X_i - \overline{X})^2}}$$
+
+$\\ \text{Now, the point estimator } s^2\{b_1\} \enspace \text{is an unbiased estimator of} \enspace \sigma^2\{b_1\}. \text{ Taking the positive square root, we obtain }$
+
+$s\{b_1\}, \text{ the point estimator of }\sigma\{b_1\}.$
+
+$\textbf{Now to show that the least squares estimator of }\enspace\beta_1 \enspace\textbf{has the minimum variance among all}$
+
+$\textbf{other linear unbiased estimators of the form:} \enspace \hat\beta_1 = \sum{c_iY_i} \enspace\text{where } c_i \text{are arbitrary constants}$
+
+$\because \hat\beta_1 \text{is required to be unbiased, the following must hold:}$ $$E\{\hat\beta_1\} = E\{\sum{c_iY_i}\} = \sum{c_iE\{Y_i}\} = \beta_1 $$ $\text{Now, we know that: } E\{Y_i\} = \beta_0 + \beta_1X_i$ $$\therefore E\{\hat\beta_1\} = \sum{c_i(\beta_0 + \beta_1X_i)} = \sum{c_i\beta_0 + c_i\beta_1X_i)} = \sum{c_i\beta_0 + }\sum{c_i\beta_1X_i)} = \beta_0\sum{c_i} + \beta_1\sum{c_iX_1} = \beta_1$$ $\therefore \text{For the unbiasedness condition to hold, the } c_i \text{ must follow the restrictions:}$ $$\sum{c_i} =0 \qquad \& \qquad \sum{c_ix_i} = 1 \qquad(**)$$ $\text{Now, we know that: }\sigma^2\{\hat\beta_1\} = \sum{c_i^2\sigma^2\{Y_i\}} = \sigma^2\sum{c_i^2}$ $\text{Now, Let }c_i = k_i + d_i \text{ where } k_i \text{ are the least squares }$ $\text{constants in the equation (*) and } d_i \text{ are arbitrary constants}$ $$\therefore \sigma^2\{\beta_1\} = \sigma^2\sum{c_i^2} =  \sigma^2\sum{(k_i + d_i)^2} $$ $$ = \sigma^2\sum{(k_i^2 + d_i^2+2k_id_i)} = \sigma^2(\sum{k_i^2 + \sum{d_i^2}+2\sum{k_id_i})}$$ $$= \sigma^2\sum{k_i^2 + \sigma^2\sum{d_i^2}+2\sigma^2\sum{k_id_i})} = \sigma^2\{b_1\} +\sigma^2\sum{d_i^2} + 2\sigma^2\sum{k_id_i})$$ $Now,$ $$\sum{k_id_i} = \sum{k_i(c_i-k_i)} = \sum{c_ik_i - k_i^2} = \sum{c_ik_i} - \sum{k_i^2} $$ $$=\sum{c_i\big{[}\frac{X_i - \overline{X}}{\sum{(X_i - \overline{X})^2}}\big{]}} - \frac{1}{\sum{(X_i - \overline{X})^2}}$$
+
+$$=\sum{\frac{c_iX_i - c_i\overline{X}}{\sum{(X_i - \overline{X})^2}}} - \frac{1}{\sum{(X_i - \overline{X})^2}}$$
+
+$$=\frac{\sum{c_iX_i} - \sum{c_i\overline{X}}}{\sum{(X_i - \overline{X})^2}} - \frac{1}{\sum{(X_i - \overline{X})^2}}$$ $$=\frac{\sum{c_iX_i} - \overline{X}\sum{c_i}}{\sum{(X_i - \overline{X})^2}} - \frac{1}{\sum{(X_i - \overline{X})^2}}$$ $$=\frac{1 - \overline{X}(0)}{\sum{(X_i - \overline{X})^2}} - \frac{1}{\sum{(X_i - \overline{X})^2}} \qquad\textbf{ by (**)}$$ $$=\frac{1}{\sum{(X_i - \overline{X})^2}} - \frac{1}{\sum{(X_i - \overline{X})^2}} = 0$$
+
+$\therefore \sigma^2\{\hat\beta_1\} = \sigma^2\{b_1\} + \sigma^2\sum{d_i^2}$ $\textbf{Note that the smallest value of } \sum{d_i^2} \textbf{ is zero. Hence, the variance of } \beta_1$ $\textbf{is at a minimum when } \sum{d_i^2} = 0 \textbf{. This can only occur when } d_i = 0 \enspace \forall d_i$ $$\therefore c_i\equiv k_i$$
+
+$\therefore \textbf{The least squares estimator } b_1 \textbf{ has minimum variance among all unbiased linear estimators as needed}$
+
+\newpage
+
+# Question 6
+
+## Packages Required
+
+```{r eval=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+## Reading in the data
+
+```{r}
+myData <- read_csv("MiceWeightGain.csv")
+```
+
+## Displaying some data
+
+```{r}
+myData
+```
+
+## Part A - Drawing a scatter plot of weight change versus nutrient level
+
+```{r}
+ggplot(myData, aes(x = x, y = y)) + geom_point()
+```
+
+## Part B - Fitting a simple linear regression, relating weight change to nutrient level
+
+```{r}
+ggplot(myData, aes(x = x, y=y)) + geom_point() + geom_smooth(method = "lm")
+```
+
+## Part C - Testing whether there is a positive association between weight change and nutrient level
+
+Since we are testing whether there is a positive association between weight change and nutrient level, our Null Hypothesis and alternate Hypothesis is $$H_0 = 0 \,\,\, H_a > 0$$
+
+### Fit the model and get the summary of the regression fit.
+
+```{r}
+fit <- lm(y~x, data=myData)
+
+stats <- summary(fit)
+
+stats
+```
+
+```{r echo=FALSE}
+testStatistic <- stats$coefficients[2,3]
+p_val <- pt(testStatistic, nrow(myData) - 2, lower.tail=FALSE)
+```
+
+We can gather from the summary that the test statistic is `r testStatistic` and the p-value is `r p_val`.
+
+Note: Since this is one sided test the p-value formula is $P(|t^*| > \alpha)$ and not $P(|t^*| > \alpha) * 2$.
+
+Using the p-value approach, since the p-value is less than the level of significance $0.05$. We reject the Null Hypothesis.
+
+That means we can say that there is a positive association between weight change and nutrient level.
+
+## Part D - A 95% confidence interval for the mean change in weight as nutrient level is increased by 1 unit
+
+```{r, echo=FALSE}
+
+b1 <- stats$coefficients[2,1]
+
+se_b1 <- stats$coefficients[2,2]
+
+critPoint <- qt(0.975, df = nrow(myData) - 2, lower.tail=TRUE)
+
+left_ci <- b1 - critPoint * se_b1
+right_ci <- b1 + critPoint * se_b1 
+
+```
+
+We can gather from the summary the following data
+
+-   $$ \hat{\beta_1} = `r b1` $$
+
+-   $$ SE(\hat{\beta_1}) = `r se_b1`$$
+
+From the above information and using the formula $\hat{\beta_1} \pm t_{(1 - \frac{\alpha}{2})(n-2)} \cdot SE(\hat{\beta_1})$ we can say that the confidence interval is\
+$$(`r c(left_ci, right_ci)`)$$\
+That is we estimate with 95% confidence that the mean change in weight increases between **`r left_ci`** and **`r right_ci`** as nutrient level is increased by 1 unit

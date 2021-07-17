@@ -1,0 +1,565 @@
+---
+title: "Assignment 2"
+author: "Aly Abdelwahed, Manish Suresh"
+date: "18/02/2021"
+output:
+  pdf_document: default
+  html_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Question 1
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+### Part (a)
+
+We are given a value for $\sigma$ and we know that
+$\frac{\hat\beta_1 - \beta_1}{\frac{\sigma}{\sqrt{S_{XX}}}} \thicksim N(0,1)$
+
+As such, $$P(|\hat\beta_1 - \beta_1| > 1)$$
+$$\therefore P(\left|\frac{\hat\beta_1 - \beta_1}{\frac{\sigma}{\sqrt{S_{XX}}}}\right| > \frac{\sqrt{S_{XX}}}{\sigma})$$
+$$= P(|Z| > \frac{\sqrt{S_{XX}}}{\sigma}) $$
+$$= P(Z > \frac{\sqrt{S_{XX}}}{\sigma}) +  P(Z < -\frac{\sqrt{S_{XX}}}{\sigma})$$
+
+Therefore, the value of the probability above is:
+
+```{r}
+X <- data.frame(X= c(4, 8, 12, 16, 20))
+S_XX <- sum((X$X - mean(X$X))^2)
+sigma = 5
+pnorm(sqrt(S_XX)/sigma, mean = 0,sd = 1, lower.tail = FALSE) + pnorm(-sqrt(S_XX)/sigma, 
+mean = 0,sd = 1)
+```
+
+$\therefore P(Z > \frac{\sqrt{S_{XX}}}{\sigma}) + P(Z < -\frac{\sqrt{S_{XX}}}{\sigma}) = P(Z > \frac{\sqrt{`r S_XX`}}{`r sigma`}) + P(Z < -\frac{\sqrt{`r S_XX`}}{`r sigma`})$
+$$= P(Z > `r sqrt(S_XX)/sigma`) +  P(Z < `r -sqrt(S_XX)/sigma`)$$
+$$=`r pnorm(sqrt(S_XX)/sigma, mean = 0,sd = 1, lower.tail = FALSE)` + `r pnorm(-sqrt(S_XX)/sigma, mean = 0,sd = 1)`$$
+$$= `r pnorm(sqrt(S_XX)/sigma, mean = 0,sd = 1, lower.tail = FALSE) + pnorm(-sqrt(S_XX)/sigma, mean = 0,sd = 1)`$$
+\newpage
+
+### Part (b)
+
+```{r}
+# Setting the seed
+set.seed(1004269365)
+
+# Generating the random errors
+true.errors <- rnorm(5,0,5)
+
+# Storing the values for X
+X = c(4,8,12,16,20)
+
+# Calculating the valus for Y
+Y = 20 + 4 * X + true.errors
+
+# Performing the linear regression
+regression <- lm(Y ~ X)
+
+# Getting the least square estimates
+beta0.hat <- regression$coefficients[1]
+beta1.hat <- regression$coefficients[2]
+
+# Predicting the value for X = 10
+# Y0.hat = beta0.hat + beta1.hat * 10
+new.data <- data.frame(X = 10)
+prediction <- predict(regression, new.data, interval = "confidence")
+
+Y0.hat <- prediction[1]
+interval <- c(prediction[2], prediction[3])
+
+```
+
+The values of $Y_1, Y_2, Y_3, Y_4, Y_5$ are `r round(Y,1)`\
+The least Square estimates $\hat{\beta_0}$ and $\hat{\beta_1}$ are
+`r round(beta0.hat, 2)` and `r round(beta1.hat, 2)` respectively.\
+The calculated value of $\hat{Y_0}$ when $X_0 = 10$ is
+`r round(Y0.hat,2)`\
+The $95\%$ confidence interval for $\mathbb{E}\left(\hat{Y_0}\right)$ is
+$(`r round(interval,2)`)$
+
+### Part (c)
+
+```{r}
+# Setting the seed
+set.seed(1004269365)
+
+# Stroing the values for X
+X = c(4,8,12,16,20)
+
+# Rerun 1000 times
+raw.estimates <- rerun(1000, rnorm(5,0,5)) %>%
+  map(~ . + 4 * X + 20) %>%
+  map(~ lm(. ~ X))
+
+estimates <- raw.estimates %>%
+  map_dfr(~ c(.$coefficients[1], .$coefficients[2]))
+
+names(estimates) <- c("Bias","Slope")
+
+# Plotting a histogram of the least square estimates
+ggplot(estimates, aes(x=Bias)) + geom_histogram(bins = 8, 
+color = "black", fill="grey") + ggtitle("b0 estimates")
+ggplot(estimates, aes(x=Slope)) + geom_histogram(bins = 8, 
+color = "black", fill="grey") + ggtitle("b1 estimates")
+
+mean.b0 <- mean(estimates$Bias)
+mean.b1 <- mean(estimates$Slope)
+sd.b0 <- sd(estimates$Bias)
+sd.b1 <- sd(estimates$Slope)
+```
+
+The theoretical expectations for the least square estimates as follows\
+$$
+\hat{\beta_0} \sim N\left(\beta_0,\,\, \sigma^2\left(\frac{1}{n} + \frac{\bar{X}^2}{S_{XX}}\right)\right)
+$$ and $$
+\hat{\beta_1} \sim N\left(\beta_1,\,\, \frac{\sigma^2}{S_{XX}}\right)
+$$ So the theoretical mean and standard deviation of the least square
+estimates are
+
+|                 | Mean | Standard Deviation                |
+|-----------------|------|-----------------------------------|
+| $\hat{\beta_0}$ | 20   | `r sqrt(25 * 1/5 + 25 * 144/160)` |
+| $\hat{\beta_1}$ | 4    | `r sqrt(25/160)`                  |
+
+\newpage
+
+So the analytical mean and standard deviation of the least square
+estimates are
+
+|                 | Mean        | Standard Deviation |
+|-----------------|-------------|--------------------|
+| $\hat{\beta_0}$ | `r mean.b0` | `r sd.b0`          |
+| $\hat{\beta_1}$ | `r mean.b1` | `r sd.b1`          |
+
+The theoretical and analytical estimates are consistent.
+
+### Part (d)
+
+```{r}
+# Retreieve all the information about the prediction data on the 1000 regression data
+prediction.list <- raw.estimates %>%
+  map(~ predict(., data.frame(X = 10), interval = "confidence"))
+
+# Determine the confidence interval information from the prediction data
+confidence.intervals <- do.call(rbind.data.frame, prediction.list)
+
+# Determine the Expected value of Y
+E.Y0 = 20 + 4 * 10
+
+# Filter the correct ammount of rows
+temp.data <- confidence.intervals[confidence.intervals$lwr < E.Y0, ] 
+temp.data <- temp.data[temp.data$upr > E.Y0,]
+
+# Display the number of rows
+nrow(temp.data)
+```
+
+AS you can see from the number of rows above, at least 952 rows contain
+the $\mathbb{E}\left(\hat{Y_0}\right)$ which is inline with fact that at
+least 95% of the intervals contain the
+$\mathbb{E}\left(\hat{Y_0}\right)$.
+
+\newpage
+
+# Question 2
+
+```{r include=FALSE}
+dataset <- read_csv("NHLhtwt.csv")
+dataset
+```
+
+### Part (a)
+
+```{r}
+# Perform the regression on the dataset
+NHL.regression <- lm(Weight ~ Height, dataset)
+
+NHL.x0 =  74
+
+# Store the coefficients
+NHL.b0 <- NHL.regression$coefficients[1]
+NHL.b1 <- NHL.regression$coefficients[2]
+
+# Store the fitted value for a new observation
+NHL.Y0.hat <-  NHL.b0 + NHL.b1 * NHL.x0
+
+# Calculate the sigma hat
+NHL.sigma.hat <- sqrt(sum(NHL.regression$residuals^2) / (nrow(dataset) - 2))
+
+# Calculate S_XX
+NHL.S_XX = (nrow(dataset) - 1) * sd(dataset$Height)^2
+
+# Calculate X_Bar
+NHL.X.Bar = mean(dataset$Height)
+
+# Calculate the Standard error of fitted values
+NHL.SE.Y0.hat <- NHL.sigma.hat * sqrt(1/nrow(dataset) + (74 - NHL.X.Bar)^2/NHL.S_XX)
+
+# Calculate the confidence interval
+NHL.Confidence.interval <- c(NHL.Y0.hat - qt(0.975, nrow(dataset) - 2) *
+NHL.SE.Y0.hat, NHL.Y0.hat + qt(0.975, nrow(dataset) - 2) * NHL.SE.Y0.hat)
+
+```
+
+#### Constructing a confidence interval via hands
+
+$\enspace$
+
+To find the confidence interval for the mean weight of all players with
+$X_0= 74$, we use the formula $$
+\hat{Y_0} \pm t_{\{1 - \frac\alpha2;n-2\}}\mathbb{SE}\left(\hat{Y_0}\right)
+$$
+
+First we calculate the fitted value for the new observation $X_0 = 74$
+$$\hat{Y_0} = \hat{\beta_0} + \hat{\beta_1}\,X_0 $$
+$$= `r NHL.b0` + `r NHL.b1` \times 74$$ $$= `r NHL.Y0.hat`$$
+$$= `r round(NHL.Y0.hat, 2)`$$
+
+Next we calculate the standard error of $\hat{Y_0}$
+$$\mathbb{SE}\left(\hat{Y_0}\right) = \hat{\sigma}\sqrt{\frac1n + \frac{\left(X_0 - \bar{X}\right)^2}{S_{XX}}}$$
+$$= `r NHL.sigma.hat` \sqrt{\frac1{`r nrow(dataset)`} + \frac{(74 - `r NHL.X.Bar`)^2}{`r NHL.S_XX`}}$$
+$$= `r NHL.SE.Y0.hat`$$ $$= `r round(NHL.SE.Y0.hat, 2)`$$
+
+Finally we can calculate the confidence interval
+$$C_n = \hat{Y_0} \pm t_{\{1 - \frac\alpha2;n-2\}}\mathbb{SE}\left(\hat{Y_0}\right)$$
+$$= `r NHL.Y0.hat` \pm `r qt(.975, 3)` \times `r NHL.SE.Y0.hat`$$
+$$= (`r NHL.Confidence.interval`)$$
+$$= (`r round(NHL.Confidence.interval, 2)`)$$
+
+#### Constructing a confidence interval via built-R function
+
+$\enspace$
+
+```{r}
+prediction <- predict(NHL.regression, data.frame(Height=74), interval = "confidence")
+R.NHL.confidence.interval <- c(prediction[2], prediction[3])
+```
+
+|                       | Confidence Interval                       |
+|-----------------------|-------------------------------------------|
+| Computed by Hand      | (`r round(NHL.Confidence.interval, 2)`)   |
+| R's Built in function | (`r round(R.NHL.confidence.interval, 2)`) |
+
+As you can see they are same
+
+### Part (b)
+
+```{r}
+# Calculate the standard deviation of the prediction
+NHL.SE.pred <- NHL.sigma.hat * sqrt(1 + 1/nrow(dataset) + (74 - NHL.X.Bar)^2/NHL.S_XX)
+
+# Calculate the confidence interval
+NHL.Prediction.interval <- c(NHL.Y0.hat - qt(0.975, nrow(dataset) - 2) * NHL.SE.pred, 
+NHL.Y0.hat + qt(0.975, nrow(dataset) - 2) * NHL.SE.pred)
+
+```
+
+#### Constructing a prediction interval via hands
+
+$\enspace$
+
+To find the prediction interval for the mean weight of all players with
+$X_0= 74$, we use the formula $$
+\hat{Y_0} \pm t_{\{1 - \frac\alpha2;n-2\}}\mathbb{SE}\left(\{pred\}\right)
+$$
+
+First we calculate the fitted value for the new observation $X_0 = 74$
+$$\hat{Y_0} = \hat{\beta_0} + \hat{\beta_1}\,X_0$$
+$$= `r NHL.b0` + `r NHL.b1` \times 74$$ $$= `r NHL.Y0.hat`$$
+$$= `r round(NHL.Y0.hat, 2)`$$
+
+Next we calculate the standard error of the new prediction
+$$\mathbb{SE}\left(\{pred\}\right) = \hat{\sigma}\sqrt{1 + \frac1n + \frac{\left(X_0 - \bar{X}\right)^2}{S_{XX}}}$$
+$$= `r NHL.sigma.hat` \sqrt{1 + \frac1{`r nrow(dataset)`} + \frac{(74 - `r NHL.X.Bar`)^2}{`r NHL.S_XX`}}$$
+$$= `r NHL.SE.pred`$$ $$= `r round(NHL.SE.pred, 2)`$$
+
+Finally we can calculate the prediction interval
+
+$$C_n = \hat{Y_0} \pm t_{\{1 - \frac\alpha2;n-2\}}\mathbb{SE}\left(\{pred\}\right)$$
+$$= `r NHL.Y0.hat` \pm `r qt(.975, 3)`\,* `r NHL.SE.pred`$$
+$$= (`r NHL.Prediction.interval`)$$
+$$= (`r round(NHL.Prediction.interval, 2)`)$$
+
+#### Constructing a prediction interval via built-R function
+
+$\enspace$
+
+```{r}
+prediction <- predict(NHL.regression, data.frame(Height=74), interval = "prediction")
+R.NHL.prediction.interval <- c(prediction[2], prediction[3])
+```
+
+|                       | Prediction Interval                       |
+|-----------------------|-------------------------------------------|
+| Computed by Hand      | (`r round(NHL.Prediction.interval, 2)`)   |
+| R's Built in function | (`r round(R.NHL.prediction.interval, 2)`) |
+
+As you can see they are same
+
+### Part (c)
+
+```{r}
+# Store the residuals of the dataset
+Residuals <- resid(NHL.regression)
+
+
+# store the fitted values of the regression
+Fitted <- fitted.values(NHL.regression)
+
+# Combine them into data frame
+graph.data <- cbind.data.frame(Residuals, Fitted)
+
+# PLot the graph
+ggplot(graph.data, aes(x=Fitted, y=Residuals)) + geom_point() + 
+ggtitle("Residuals vs Fitted Values") + geom_hline(yintercept  = 0)
+
+
+```
+
+### Part (d)
+
+```{r}
+# Plot the graph to test the normality
+qqnorm(Residuals)
+qqline(Residuals)
+
+# Perform the Shapiro test
+shapiro.test(Residuals)
+```
+
+As we can see by the shapiro-wilk test, the p-value is \< 0.05 which
+means that we reject the null hypothesis $H_0$ and that the errors are
+not normally distributed
+
+### Part (e)
+
+```{r}
+
+df <- data.frame(resid = c(NHL.regression$residuals), Height = c(dataset$Height))
+medianX <- median(dataset$Height)
+greaterResid <- subset(df, dataset$Height>medianX)$resid
+lowerResid <- subset(df, dataset$Height<=medianX)$resid
+
+D1 <- data.frame(absoluteDeviation1 = abs(greaterResid-median(greaterResid)))
+D2 <- data.frame(absoluteDeviation2 = abs(lowerResid-median(lowerResid)))
+
+s1_2 <- var(D1$absoluteDeviation1)
+s2_2 <- var(D2$absoluteDeviation2)
+
+pooledVariance = ((nrow(D1) - 1)*s1_2+(nrow(D2) - 1)*s2_2)/(nrow(dataset)-2)
+
+t_BF = (mean(D1$absoluteDeviation1) - mean(D2$absoluteDeviation2))/(sqrt( pooledVariance*
+(1/nrow(D1) + 1/nrow(D2)) ))
+t_BF
+
+alpha = 0.05
+(abs(t_BF) >= qt(1-alpha/2, nrow(dataset)-2))
+```
+
+As such, since
+$|t_{BF}| \geq t_{\{1-\frac{`r alpha`}{2}; `r nrow(dataset) - 2`\}}$, we
+reject $H_0$ and the error variance does not vary with the level of X
+
+### Part (f)
+
+```{r}
+library(MASS)
+result <- boxcox(NHL.regression)
+mylambda <- result$x[which.max(result$y)]
+mylambda
+```
+
+Now, to check the normality of the errors
+
+```{r}
+newNHL.regression <- lm(Weight^mylambda ~ Height, dataset)
+
+
+ggplot(graph.data, aes(x=newNHL.regression$fitted.values, y=newNHL.regression$residuals)) + 
+geom_point() + ggtitle("Residuals vs Fitted Values") + geom_hline(yintercept  = 0)
+
+qqnorm(newNHL.regression$residuals)
+qqline(newNHL.regression$residuals)
+
+# Perform the Shapiro test
+shapiro.test(newNHL.regression$residuals)
+```
+
+We can see that the fitted values vs the residuals plots before and
+after the box-cox transformation are almost identical in terms of the
+spread of the residuals which means the box-cox transformation has not
+made much of an impact on the spread of the residuals. However, we can
+see from the QQ-plot, the points on the plot are lying more on a
+straight line than they were prior to the box-cox transformation which
+means that the normality of the errors has been improved. That can also
+be seen from the greater p-value of the shapiro-wilk test as 0.008735 \>
+0.006511. However, the new p-value is still less than 0.05 which means
+that we still reject the null hypothesis $H_0$ and that the errors are
+still not normally distributed
+
+$$\enspace$$
+
+Now, to check if the whether or not the error variance varies with the
+level of X
+
+```{r}
+df <- data.frame(resid = c(newNHL.regression$residuals), Height = c(dataset$Height))
+medianX <- median(dataset$Height)
+greaterResid <- subset(df, dataset$Height>medianX)$resid
+lowerResid <- subset(df, dataset$Height<=medianX)$resid
+
+D1 <- data.frame(absoluteDeviation1 = abs(greaterResid-median(greaterResid)))
+D2 <- data.frame(absoluteDeviation2 = abs(lowerResid-median(lowerResid)))
+
+s1_2 <- var(D1$absoluteDeviation1)
+s2_2 <- var(D2$absoluteDeviation2)
+
+pooledVariance = ((nrow(D1) - 1)*s1_2+(nrow(D2) - 1)*s2_2)/(nrow(dataset)-2)
+
+t_BF = (mean(D1$absoluteDeviation1) - mean(D2$absoluteDeviation2))/(sqrt( pooledVariance*
+(1/nrow(D1) + 1/nrow(D2)) ))
+t_BF
+
+alpha <- 0.05
+(abs(t_BF) >= qt(1-alpha/2, nrow(dataset)-2))
+```
+
+As such, after the box-cox transformation, since
+$|t_{BF}| < t_{\{1-\frac{`r alpha`}{2}; `r nrow(dataset) - 2`\}}$, we
+fail to reject the null hypothesis $H_0$ and as such, we fail to reject
+the hypothesis that the error variance varies with the level of X
+
+\newpage
+
+# Question 3
+
+## Part (a)
+
+```{r}
+library(matlib)
+
+X <- matrix(c(1,-9,3,1,-7,-7,1,-5,7,1,-3,-9,1,-1,1,1,1,5,1,3,-1,1,5,-3,1,7,-5,1,9,9), 
+nrow = 10,byrow=T)
+
+#Method #1: Following Slide 16 on the scanned lecture 8
+X.T <- t(X)
+
+XT_X.inv<- inv(X.T %*% X)
+
+Y = matrix(c(34,16,26,35,32,11,24,1,-3,15), nrow = 10,byrow=T)
+
+B_hat <- XT_X.inv %*% X.T %*% Y
+B_hat
+```
+
+```{r}
+#Method #2: Using the R linear regression model
+fit <- lm(Y~X[,2]+X[,3])
+fit
+```
+
+As we can see from both methods, the least squares estimate of the model
+with the given information:
+
+$Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \epsilon =$
+`r fit$coefficients[1]` `r fit$coefficients[2]`$X_1$ +
+`r fit$coefficients[3]`$X_2$
+
+## Part (b)
+
+```{r}
+#Following Slide 17 on the scanned lecture 8
+Y_hat <- X %*% B_hat
+resid <- Y - Y_hat
+resid.T <- t(resid)
+errorVarianceSquare <- 1/(nrow(X)-2)*(resid.T %*% resid)
+errorVarianceSquare
+```
+
+As we can see, an unbiased estimate of the error variance $\sigma^2$ is:
+`r errorVarianceSquare`
+
+\newpage
+
+# Question 4
+
+## Part (a)
+
+### Part 1: Design matrix X
+
+```{r}
+X <- matrix(c(1,3,1,5,1,4,1,6,1,7), nrow = 5,byrow=T)
+X
+```
+
+$\textbf{Note: In the following questions, I tried to do the tilde symbol under the }\hat\beta \enspace \textbf{character but I } \\ \textbf{couldn't do it in RStudio. It wasn't working for some reason. Please do not take off marks} \\ \textbf{for that}$
+
+### Part 2: vector of estimated regression coeffcients
+
+```{r}
+library(matlib)
+Y = matrix(c(4, 6.5, 5, 7, 7.5), nrow = 5,byrow=T)
+
+#Method #1: Following Slide 16 on the scanned lecture 8
+X.T = t(X)
+
+XT_X.inv<- inv(X.T %*% X)
+B_hat <- XT_X.inv %*% X.T %*% Y
+B_hat
+```
+
+```{r}
+#Method #2: Using the R linear regression model
+fit <- lm(Y~X[,2])
+fit
+
+```
+
+As such, the vector of estimated regression coefficients is:
+$$\mathbf{\hat\beta} = \begin{bmatrix}
+`r B_hat[1]` \\
+`r B_hat[2]` \\
+\end{bmatrix}
+$$
+
+### Part 3: variance-covariance matrix
+
+```{r}
+#Using slide 18 on lecture 8
+varianceCovaraince <- 4*XT_X.inv
+varianceCovaraince
+```
+
+As we can see, the variance-covariance matrix of $\hat\beta$ is:
+$$4 \times \begin{bmatrix}`r XT_X.inv[1,1]` & `r XT_X.inv[1,2]`\\ `r XT_X.inv[2,1]` & `r XT_X.inv[2,2]` \end{bmatrix} = \begin{bmatrix}`r varianceCovaraince [1,1]` & `r varianceCovaraince [1,2]`\\`r varianceCovaraince [2,1]` & `r varianceCovaraince [2,2]`\end{bmatrix}$$
+
+## Part (b)
+
+Therefore, from the matrix above:
+
+$$Cov\{\hat{\beta_0},\hat{\beta_1}\} = `r varianceCovaraince [2,1]`$$
+
+$$Var\{\hat{\beta_0}\} = `r varianceCovaraince [1,1]`$$
+
+$$Var\{\hat{\beta_1}\} = `r varianceCovaraince [2,2]`$$
+
+## Part (c)
+
+```{r}
+H = X %*% XT_X.inv %*% X.T
+H
+```
+
+## Part (d)
+
+```{r}
+
+varianceErrors = 4*(diag(5) - H)
+varianceErrors
+```
